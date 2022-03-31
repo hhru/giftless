@@ -1,0 +1,8 @@
+version: 0.5.0
+docker_files:
+  giftless: docker/Dockerfile
+docker_context: .
+update_method: python_update
+build_method: nope_build
+deploy_method: nope_deploy
+python_version_file: giftless/version.py

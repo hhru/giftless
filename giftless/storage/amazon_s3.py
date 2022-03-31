@@ -3,6 +3,7 @@ from typing import Any, BinaryIO, Dict, Iterable, Optional
 
 import boto3  # type: ignore
 import botocore  # type: ignore
+from botocore.client import Config  # type: ignore
 
 from giftless.storage import ExternalStorage, StreamingStorage
 from giftless.storage.exc import ObjectNotFound
@@ -13,11 +14,21 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
     """AWS S3 Blob Storage backend.
     """
 
-    def __init__(self, bucket_name: str, path_prefix: Optional[str] = None, **_):
+    def __init__(self, bucket_name: str, path_prefix: Optional[str] = None, url: Optional[str] = None,
+                 access_key: Optional[str] = None, secret_key: Optional[str] = None,
+                 signature_version: Optional[str] = 's3v4', **_):
         self.bucket_name = bucket_name
         self.path_prefix = path_prefix
-        self.s3 = boto3.resource('s3')
-        self.s3_client = boto3.client('s3')
+        if url is None:
+            self.s3 = boto3.resource('s3')
+            self.s3_client = boto3.client('s3')
+        else:
+            self.s3 = boto3.resource('s3',
+                                     endpoint_url=url,
+                                     aws_access_key_id=access_key,
+                                     aws_secret_access_key=secret_key,
+                                     config=Config(signature_version=signature_version))
+            self.s3_client = self.s3.meta.client
 
     def get(self, prefix: str, oid: str) -> Iterable[bytes]:
         if not self.exists(prefix, oid):
