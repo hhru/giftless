@@ -8,4 +8,7 @@ RUN pip install -e /app
 
 WORKDIR /app
 
+COPY requirements_test.txt /
+RUN pip wheel -w /wheels -r /requirements_test.txt
+
 RUN pytest giftless tests
