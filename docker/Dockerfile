@@ -8,4 +8,4 @@ RUN pip install -e /app
 
 WORKDIR /app
 
-RUN make test
+RUN pytest giftless tests
