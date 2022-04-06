@@ -1,6 +1,6 @@
 FROM registry.pyn.ru/giftless-base:giftless-base-1.0.0 as base
 
-RUN mkdir /app
+#RUN mkdir /app
 
 # Copy project code
 COPY . /app
