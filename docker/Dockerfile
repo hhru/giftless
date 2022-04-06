@@ -7,7 +7,7 @@ COPY . /app
 RUN pip install -e /app
 
 COPY requirements_test.txt /
-RUN pip wheel -w /wheels -r /requirements_test.txt
+RUN pip install -r /requirements_test.txt
 
 WORKDIR /app
 
