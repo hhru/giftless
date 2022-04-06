@@ -6,8 +6,8 @@ RUN mkdir -p /app
 COPY . /app
 RUN pip install -e /app
 
-COPY requirements_test.txt /
-RUN pip install -r /requirements_test.txt
+COPY dev-requirements.txt /
+RUN pip install -r /dev-requirements.txt
 
 WORKDIR /app
 
