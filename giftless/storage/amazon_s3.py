@@ -19,6 +19,7 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
                  signature_version: Optional[str] = 's3v4', **_):
         self.bucket_name = bucket_name
         self.path_prefix = path_prefix
+
         if url is None:
             self.s3 = boto3.resource('s3')
             self.s3_client = boto3.client('s3')
