@@ -11,4 +11,4 @@ RUN pip install -r /dev-requirements.txt
 
 WORKDIR /app
 
-RUN pytest giftless tests
+#RUN pytest giftless tests

@@ -5,7 +5,7 @@ through the Git LFS HTTP server. It can use different storage backends (local,
 cloud, ...). This module defines an
 interface through which additional streaming backends can be implemented.
 """
-
+import logging
 import posixpath
 from typing import Any, Dict, Optional
 
@@ -20,6 +20,11 @@ from giftless.storage import StreamingStorage, VerifiableStorage
 from giftless.transfer import PreAuthorizingTransferAdapter, ViewProvider
 from giftless.util import add_query_params, get_callable, safe_filename
 from giftless.view import BaseView
+
+from flask.globals import _request_ctx_stack
+
+
+logger = logging.getLogger(__name__)
 
 
 class VerifyView(BaseView):
@@ -103,18 +108,23 @@ class ObjectsView(BaseView):
     def get_storage_url(cls, operation: str, organization: str, repo: str, oid: Optional[str] = None) -> str:
         """Get the URL for upload / download requests for this object
         """
+        logger.error(f'rrr _request_ctx_stack.top = {_request_ctx_stack.top}')
         op_name = f'{cls.__name__}:{operation}'
+        logger.error(f'rrr op_name = {op_name}')
         url: str = url_for(op_name, organization=organization, repo=repo, oid=oid, _external=True)
+        logger.error(f'rrr url = {url}')
         return url
 
 
 class BasicStreamingTransferAdapter(PreAuthorizingTransferAdapter, ViewProvider):
 
     def __init__(self, storage: StreamingStorage, action_lifetime: int):
+        logger.error('rrr init BasicStreamingTransferAdapter')
         self.storage = storage
         self.action_lifetime = action_lifetime
 
     def upload(self, organization: str, repo: str, oid: str, size: int, extra: Optional[Dict[str, Any]] = None) -> Dict:
+        logger.error('rrr BasicStreamingTransferAdapter upload')
         response = {"oid": oid,
                     "size": size}
 
@@ -134,11 +144,12 @@ class BasicStreamingTransferAdapter(PreAuthorizingTransferAdapter, ViewProvider)
                 }
             }
             response['authenticated'] = True
-
+        logger.error(f'rrr BasicStreamingTransferAdapter upload response = {response}')
         return response
 
     def download(self, organization: str, repo: str, oid: str, size: int,
                  extra: Optional[Dict[str, Any]] = None) -> Dict:
+        logger.error('rrr BasicStreamingTransferAdapter download')
         response = {"oid": oid,
                     "size": size}
 

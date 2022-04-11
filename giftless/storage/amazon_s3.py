@@ -1,3 +1,4 @@
+import logging
 import posixpath
 from typing import Any, BinaryIO, Dict, Iterable, Optional
 
@@ -8,6 +9,9 @@ from botocore.client import Config  # type: ignore
 from giftless.storage import ExternalStorage, StreamingStorage
 from giftless.storage.exc import ObjectNotFound
 from giftless.util import safe_filename
+
+
+logger = logging.getLogger(__name__)
 
 
 class AmazonS3Storage(StreamingStorage, ExternalStorage):
@@ -31,12 +35,14 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
             self.s3_client = self.s3.meta.client
 
     def get(self, prefix: str, oid: str) -> Iterable[bytes]:
+        logger.error('rrr s3 get')
         if not self.exists(prefix, oid):
             raise ObjectNotFound()
         result: Iterable[bytes] = self._s3_object(prefix, oid).get()['Body']
         return result
 
     def put(self, prefix: str, oid: str, data_stream: BinaryIO) -> int:
+        logger.error('rrr s3 put')
         completed = []
 
         def upload_callback(size):
@@ -65,6 +71,7 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
 
     def get_upload_action(self, prefix: str, oid: str, size: int, expires_in: int,
                           extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        logger.error('rrr s3 get_upload_action')
         params = {
             'Bucket': self.bucket_name,
             'Key': self._get_blob_path(prefix, oid)
@@ -85,7 +92,7 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
 
     def get_download_action(self, prefix: str, oid: str, size: int, expires_in: int,
                             extra: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-
+        logger.error('rrr s3 get_download_action')
         params = {
             'Bucket': self.bucket_name,
             'Key': self._get_blob_path(prefix, oid)
@@ -117,6 +124,7 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
     def _get_blob_path(self, prefix: str, oid: str) -> str:
         """Get the path to a blob in storage
         """
+        logger.error('rrr s3 _get_blob_path')
         if not self.path_prefix:
             storage_prefix = ''
         elif self.path_prefix[0] == '/':
@@ -126,4 +134,5 @@ class AmazonS3Storage(StreamingStorage, ExternalStorage):
         return posixpath.join(storage_prefix, prefix, oid)
 
     def _s3_object(self, prefix, oid):
+        logger.error('rrr s3 _s3_object')
         return self.s3.Object(self.bucket_name, self._get_blob_path(prefix, oid))
