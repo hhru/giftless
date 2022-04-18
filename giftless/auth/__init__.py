@@ -56,6 +56,7 @@ class Authentication:
         self._authenticators: List[Authenticator] = []
         self._unauthorized_handler: Optional[Callable] = None
         self.preauth_handler: Optional[PreAuthorizedActionAuthenticator] = None
+        self._users: List[str] = []
 
         if app is not None:
             self.init_app(app)
@@ -65,6 +66,8 @@ class Authentication:
         """
         app.config.setdefault('AUTH_PROVIDERS', [])
         app.config.setdefault('PRE_AUTHORIZED_ACTION_PROVIDER', None)
+        app.config.setdefault('USERS', [])
+        self._users = app.config.get('USERS', [])
 
     def get_identity(self) -> Optional[Identity]:
         if hasattr(g, 'user') and isinstance(g.user, Identity):
@@ -125,11 +128,12 @@ class Authentication:
         log.debug("Initializing authenticators, have %d authenticator(s) configured",
                   len(current_app.config['AUTH_PROVIDERS']))
 
-        self._authenticators = [_create_authenticator(a) for a in current_app.config['AUTH_PROVIDERS']]
+        self._authenticators = [_create_authenticator(a, self._users) for a in current_app.config['AUTH_PROVIDERS']]
 
         if current_app.config['PRE_AUTHORIZED_ACTION_PROVIDER']:
             log.debug("Initializing pre-authorized action provider")
-            self.preauth_handler = _create_authenticator(current_app.config['PRE_AUTHORIZED_ACTION_PROVIDER'])
+            self.preauth_handler = _create_authenticator(current_app.config['PRE_AUTHORIZED_ACTION_PROVIDER'],
+                                                         self._users)
             self.push_authenticator(self.preauth_handler)
 
     def push_authenticator(self, authenticator):
@@ -156,7 +160,7 @@ class Authentication:
         return self._default_identity
 
 
-def _create_authenticator(spec: Union[str, Dict[str, Any]]) -> Authenticator:
+def _create_authenticator(spec: Union[str, Dict[str, Any]], users: List[str] = None) -> Authenticator:
     """Instantiate an authenticator from configuration spec
 
     Configuration spec can be a string referencing a callable (e.g. mypackage.mymodule:callable)
@@ -173,6 +177,8 @@ def _create_authenticator(spec: Union[str, Dict[str, Any]]) -> Authenticator:
     log.debug("Creating authenticator using factory: %s", spec['factory'])
     factory = get_callable(spec['factory'], __name__)  # type: Callable[..., Authenticator]
     options = spec.get('options', {})
+    if users is not None:
+        options['users'] = users
     return factory(**options)
 
 
