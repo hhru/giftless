@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 import jwt
 from dateutil.tz import UTC
@@ -104,7 +104,7 @@ class JWTAuthenticator(PreAuthorizedActionAuthenticator):
     def __init__(self, private_key: Optional[Union[str, bytes]] = None, default_lifetime: int = DEFAULT_LIFETIME,
                  algorithm: str = DEFAULT_ALGORITHM, public_key: Optional[str] = None, issuer: Optional[str] = None,
                  audience: Optional[str] = None, leeway: int = DEFAULT_LEEWAY, key_id: Optional[str] = None,
-                 basic_auth_user: Optional[str] = DEFAULT_BASIC_AUTH_USER):
+                 basic_auth_user: Optional[str] = DEFAULT_BASIC_AUTH_USER, users: Optional[List[str]] = None):
         self.algorithm = algorithm
         self.default_lifetime = default_lifetime
         self.leeway = leeway
@@ -116,12 +116,16 @@ class JWTAuthenticator(PreAuthorizedActionAuthenticator):
         self.basic_auth_user = basic_auth_user
         self._verification_key: Union[str, bytes, None] = None  # lazy loaded
         self._log = logging.getLogger(__name__)
+        self.users = [] if users is None else users
 
     def __call__(self, request: Request) -> Optional[Identity]:
         token_payload = self._authenticate(request)
         if token_payload is None:
             return None
-        return self._get_identity(token_payload)
+        identity = self._get_identity(token_payload)
+        if identity.id is not None and identity.id not in self.users:
+            return None
+        return identity
 
     def get_authz_header(self, *args, **kwargs) -> Dict[str, str]:
         token = self._generate_token_for_action(*args, **kwargs)

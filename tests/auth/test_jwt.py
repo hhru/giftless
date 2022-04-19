@@ -22,7 +22,7 @@ JWT_RS_PUB_KEY = os.path.join(os.path.dirname(__file__), 'data', 'test-key.pub.p
 def test_jwt_can_authorize_request_symmetric_key(app):
     """Test basic JWT authorizer functionality
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', users=['some-user-id'])
     token = _get_test_token()
     with app.test_request_context('/myorg/myrepo/objects/batch', method='POST', headers={
         "Authorization": f'Bearer {token}'
@@ -34,7 +34,7 @@ def test_jwt_can_authorize_request_symmetric_key(app):
 def test_jwt_can_authorize_request_asymmetric_key(app):
     """Test basic JWT authorizer functionality
     """
-    authz = factory(public_key_file=JWT_RS_PUB_KEY, algorithm='RS256')
+    authz = factory(public_key_file=JWT_RS_PUB_KEY, algorithm='RS256', users=['some-user-id'])
     token = _get_test_token(algo='RS256')
     with app.test_request_context('/myorg/myrepo/objects/batch', method='POST', headers={
         "Authorization": f'Bearer {token}'
@@ -46,7 +46,7 @@ def test_jwt_can_authorize_request_asymmetric_key(app):
 def test_jwt_can_authorize_request_token_in_qs(app):
     """Test basic JWT authorizer functionality
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', users=['some-user-id'])
     token = _get_test_token()
     with app.test_request_context(f'/myorg/myrepo/objects/batch?jwt={token}', method='POST'):
         identity = authz(flask.request)
@@ -56,7 +56,7 @@ def test_jwt_can_authorize_request_token_in_qs(app):
 def test_jwt_can_authorize_request_token_as_basic_password(app):
     """Test that we can pass a JWT token as 'Basic' authorization password
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', users=['some-user-id'])
     token = _get_test_token()
     auth_value = base64.b64encode(b':'.join([b'_jwt', token.encode('ascii')])).decode('ascii')
 
@@ -70,7 +70,7 @@ def test_jwt_can_authorize_request_token_as_basic_password(app):
 def test_jwt_can_authorize_request_token_basic_password_disabled(app):
     """Test that we can pass a JWT token as 'Basic' authorization password
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', basic_auth_user=None)
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', basic_auth_user=None, users=['some-user-id'])
     token = _get_test_token()
     auth_value = base64.b64encode(b':'.join([b'_jwt', token.encode('ascii')])).decode('ascii')
 
@@ -84,7 +84,8 @@ def test_jwt_can_authorize_request_token_basic_password_disabled(app):
 def test_jwt_with_wrong_kid_doesnt_authorize_request(app):
     """JWT authorizer only considers a JWT token if it has the right key ID in the header
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', key_id='must-be-this-key')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', key_id='must-be-this-key',
+                             users=['some-user-id'])
     token = _get_test_token()
     with app.test_request_context('/myorg/myrepo/objects/batch', method='POST', headers={
         "Authorization": f'Bearer {token}'
@@ -96,7 +97,7 @@ def test_jwt_with_wrong_kid_doesnt_authorize_request(app):
 def test_jwt_expired_throws_401(app):
     """If we get a JWT token who's expired, we should raise a 401 error
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', users=['some-user-id'])
     token = _get_test_token(lifetime=-600)  # expired 10 minutes ago
     with app.test_request_context('/myorg/myrepo/objects/batch', method='POST', headers={
         "Authorization": f'Bearer {token}'
@@ -106,7 +107,7 @@ def test_jwt_expired_throws_401(app):
 
 
 def test_jwt_pre_authorize_action():
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', default_lifetime=120)
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', default_lifetime=120, users=['some-user-id'])
     identity = DefaultIdentity(name='joe', email='joe@shmoe.com', id='babab0ba')
     header = authz.get_authz_header(identity, 'myorg', 'somerepo', actions={'read'})
 
@@ -122,7 +123,7 @@ def test_jwt_pre_authorize_action():
 
 
 def test_jwt_pre_authorize_action_custom_lifetime():
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', default_lifetime=120)
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', default_lifetime=120, users=['some-user-id'])
     identity = DefaultIdentity(name='joe', email='joe@shmoe.com', id='babab0ba')
     header = authz.get_authz_header(identity, 'myorg', 'somerepo', actions={'read'}, lifetime=3600)
 
@@ -188,7 +189,7 @@ def test_jwt_pre_authorize_action_custom_lifetime():
 def test_jwt_scopes_authorize_actions(app, scopes, auth_check, expected):
     """Test that JWT token scopes can control authorization
     """
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', users=['some-user-id'])
     token = _get_test_token(scopes=scopes)
     with app.test_request_context('/myorg/myrepo/objects/batch', method='POST', headers={
         "Authorization": f'Bearer {token}'
@@ -202,7 +203,7 @@ def test_jwt_scopes_authorize_actions_with_anon_user(app):
     """Test that authorization works even if we don't have any user ID / email / name
     """
     scopes = ['obj:myorg/myrepo/*']
-    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256')
+    authz = JWTAuthenticator(private_key=JWT_HS_KEY, algorithm='HS256', users=['some-user-id'])
     token = _get_test_token(scopes=scopes, sub=None, name=None, email=None)
     with app.test_request_context('/myorg/myrepo/objects/batch', method='POST', headers={
         "Authorization": f'Bearer {token}'
